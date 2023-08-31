@@ -1,0 +1,402 @@
+---
+title: "STATISTICAL TECHNIQUES"
+author: '100594631'
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Loading up the Dataset into R-Markdown working environment
+df <- read.csv('C:/Users/USER/Documents/Raw_Data/superstore_dataset2011-2015.csv')
+head(df, 5)
+```
+THE METADATA::
+
+Ship Mode=> Shipping Mode specified by the Customer. Segment => The segment where the Customer belongs. Region => Region where the Customer belong. Sales => Sales of the Product. Quantity => Quantity of the Product. Discount => Discount provided. Shipping Cost=> The amount required to transport the product Total Sales => The product of Sales and Quantity Sales After Discount => Total sales after discount deduction
+
+
+```{r}
+# Attaching the variables to the dataframe fro ease of calling
+attach(df)
+```
+
+...
+```{r}
+# the properties of the dataset
+str(df)
+```
+BRIEF EXPLORATORY ANALYSIS
+
+(QUALITATIVE)
+
+```{r}
+#Viewing the frequency of the Segment Variable
+Segment.freq <- table(Segment)
+Freq_Dist <- cbind(Segment.freq)
+Freq_Dist
+```
+...
+```{r}
+#the relative frequency distribution in then given by
+Segment.relfreq <- Segment.freq/nrow(df)
+Rel_Freq_Dist <- round(cbind(Segment.relfreq) * 100,2)
+Rel_Freq_Dist
+```
+
+
+...
+```{r}
+#Segment Frequency Distribution
+barplot((Segment.freq),
+     col="red", border=3, 
+     main="Segment Frequency Distribution", 
+     xlab="Segment", 
+     ylab="Frequency"
+     )
+```
+
+QUANTITATIVE
+```{r}
+#Relative Fequency Disricution of the the variable Quantity.
+range(Quantity)
+breaks <- seq(1, 14, by = 1) 
+breaks
+```
+...
+```{r}
+#Classify the Quantity according to the half-unit-length sub-intervals with cut
+Quantity.cut <- cut(Quantity, breaks, right = FALSE)
+```
+...
+```{r}
+#frequency distribution of the quantity of goods ordered for
+Quantity.freq <- table(Quantity.cut)
+rbind(Quantity.freq)
+```
+...
+```{r}
+boxplot(Quantity, col= "Red", border= "Blue", 
+        main="Qauntity of Goods ordered")
+```
+...
+```{r}
+# Quantity Frequency Distribution
+hist((Quantity.freq),
+     col="red", border=3, 
+     main="Quantity Frequency Distribution", 
+     xlab="Quantity", 
+     ylab="Frequency", 
+     axes=T, plot=T, labels=T, right = F)
+```
+...
+```{r}
+#Finding the Cumulative frequency distribution of the quantity of goods ordered for
+Quantity.cumfreq <- cumsum(Quantity.freq)
+rbind(Quantity.cumfreq)
+```
+...
+```{r}
+#Checking for the mean regional Total Sales
+Regional_Mean_Sales <- rbind(round(sort(tapply(TotalSale, Region, mean),
+                                 decreasing = TRUE),2))
+Regional_Mean_Sales
+```
+
+...
+```{r}
+#Checking for the mean regional Sales after discount
+Regional_Mean_Sales <- rbind(round(sort(tapply(SalesAfterDiscount, Region, mean),
+                                 decreasing = TRUE),2))
+Regional_Mean_Sales
+```
+...
+```{r}
+# finding the corellation between discount and profit
+cbind(cor(Discount, Profit))
+```
+'''
+```{r}
+plot(Discount, TotalSale,
+     col="red", border=3, 
+     main="Scatterplot of Discount & Total Sales", 
+     xlab="Discount", 
+     ylab="Total Sales",
+     axes=T, plot=T, labels=T, right = F)
+```
+
+
+
+
+STATISTICAL TESTS
+
+```{r}
+head(df)
+```
+
+
+
+ONE SAMPLE T-TEST
+
+```{r}
+boxplot(Sales, col= "Red", border= "Blue", 
+        main="Box plot Sales")
+```
+
+Null Hypothesis (H_0) : Total Sale mean is 1,300 (TotalSale = 1,300)
+
+Alternate hypothesis (H_A) : Total Sale is not 1,300 (TotalSale != 1,300)
+```{r}
+test_1 <- t.test(TotalSale, mu = 1300)
+test_1
+```
+The p-Value gotten is less than the 0.05 significance level, therefore, the NULL hypothesis is rejected
+
+
+TWO SAMPLE T-TEST
+
+
+
+Null Hypothesis (H_0) : Consumer mean is same as Corporate mean (difference = 0)
+
+Alternate hypothesis (H_A) : Consumer mean is not same as Corporate mean (difference != 0)
+```{r}
+# assigning the consumer varable to the corresponding TotalSale 
+seg_consumer <- Segment == 'Consumer'       # filtering the consumer from the segment column
+cons <- df[seg_consumer, ]                     # creates dataset containing Consumer only
+consumer_sales <- cons$TotalSale               # selects only the corresponding TotalSale values
+```
+...
+```{r}
+# assigningg the corporate data to a viariable 
+seg_corporate <- Segment == 'Corporate'    # filtering the corporate from the segment column
+corp <- df[seg_corporate, ]                   # creates dataset containing Corpotate only
+corporate_sales <- corp$TotalSale             # selects only the corresponding TotalSale values
+```
+
+...
+```{r}
+hist((corporate_sales),
+     col="red", border=3, 
+     main="Corporate Sales Frequency Distribution", 
+     xlab="Sales", 
+     ylab="Frequency", 
+     axes=T, plot=T, labels=F, right = F)
+
+hist((consumer_sales),
+     col="blue", border=3, 
+     main="Consumer Sales Frequency Distribution", 
+     xlab="Sales", 
+     ylab="Frequency", 
+     axes=T, plot=T, labels=F, right = F)
+```
+...
+```{r}
+# computing the Two sample T-Test
+test_2 <- t.test(consumer_sales, corporate_sales, var.equal=TRUE)
+test_2
+```
+
+
+as seen above, P-value id greater than 0.05 which makes it not possible to reject the null hypothesis that both means are equal
+
+
+
+
+CHI-SQUARE TEST
+
+```{r}
+# The Ship.Mode and Region Contingency Table
+ShipRegion_contingency <- with(df, table(Ship.Mode, Region))
+cbind(ShipRegion_contingency)
+```
+
+...
+
+
+Null Hypothesis (H_0) : Sales is independent of Discount
+
+Alternate hypothesis (H_A) : Consumer mean is not same as Corporate mean (difference != 0)
+```{r}
+# implementing the chi-square test
+chisq.test(Ship.Mode, Region, correct = FALSE)
+```
+The p-Value gotten is less than the 0.05 significance level, therefore, the NULL hypothesis is rejected
+...
+
+
+
+
+KRUSKAL WALIS TEST
+```{r}
+cbind(tapply(TotalSale, Order.Priority, median))
+```
+...
+```{r}
+#finding the Summary of the four variables
+Critical_summary <- summary(TotalSale[Order.Priority=='Critical'])
+High_summary <- summary(TotalSale[Order.Priority=='High'])
+Low_summary <- summary(TotalSale[Order.Priority=='Low'])
+Medium_summary <- summary(TotalSale[Order.Priority=='Medium'])
+cbind(Critical_summary, High_summary, Low_summary, Medium_summary)
+```
+Null Hypothesis (H_0) : same median ranks
+
+Alternate hypothesis (H_A) : at least one of the median rank is different
+```{r}
+# implementing the Kruskal Walis Test
+kruskal.test(Order.Priority ~ TotalSale)
+```
+
+
+as seen above, P-value id grester than 0.05 which makes it not possible to reject the null hypothesis that both median ranks are equal
+
+
+
+
+ANALYSIS OF VARIANCE(ANOVA)
+```{r}
+df_pie = read.csv('C:/Users/USER/Documents/Raw_Data/meatpie_sales.csv')
+head(df_pie, 5)
+```
+
+
+```{r}
+boxplot(df_pie, col= "Red", border= "Blue", 
+        main="Pie Popularity Box Plot")
+```
+
+...
+```{r}
+# finding the number of rows
+nrow(df_pie)
+```
+...
+```{r}
+# Concatenate the data rows in df_pie into a single vector.
+vec <- c(t(as.matrix(df_pie)))
+```
+...
+```{r}
+# Assigning new variables for the treatment levels and number of control blocks.
+t_level <- c("ï..Meatpie_A", "Meatpie_B", "Meatpie_c")   # treatment levels 
+k <- 3                                             # number of treatment levels 
+n <- 45 
+```
+...
+```{r}
+m_treatment <- gl(k, 1, n*k, factor(t_level))   # matching treatment 
+```
+...
+```{r}
+#creating a vector of blocking factors for each element in the response data.
+block_l <- gl(n, k, k*n)             # blocking factor 
+```
+...
+```{r}
+# implemnting the ANOVA test 
+av <- aov(vec ~ m_treatment + block_l)
+summary(av)
+```
+
+
+WILCOXON SIGNED RANK TEST
+```{r}
+df3 <- read.csv('C:/Users/USER/Documents/Raw_Data/sample_submission.csv')
+head(df3, 2)
+```
+Checking the normality of the distribution
+```{r}
+# Using the QQ-plot
+qqnorm(df3$SalePrice,
+      col="red", border=3, 
+     main="QQ Plot of Sales", 
+     xlab="Sample Quantile", 
+     ylab="Theoretical Quantile",
+     axes=T, plot=T, labels=T, right = F)
+```
+
+
+
+The bent line indicates abnormality of the distribution
+
+
+```{r}
+# using KDE plot
+d <- density(df3$SalePrice)
+plot(d, main="KD Plot of Sales")
+polygon(d, col="red", border="blue")
+```
+
+
+The KDE plot also indicates left-skewness.
+
+
+
+Using Shapiro-Wilt Test to further check if the data value is normally distributed
+
+
+Ho = The distribution is normally distributed
+
+Ha = The distribution in not normally distributed
+
+```{r}
+# implementing the shapiro wilk test
+shapiro.test(df3$SalePrice)
+```
+
+Since a p-value extremely lower than 0.05 is gotten, then we can reject the NULL hypothesis that the data value is normally distributed and go ahead with the Wilcoxon signed rank test
+
+
+
+Ho = The median(mean) is 180000
+
+Ha = The median(mean) is not 180000
+```{r}
+wilcox.test(df3$SalePrice, mu = 180000)
+```
+
+LINEAR REGRESSION
+
+```{r}
+#perform label encoding on variable cegorical variables
+df$Segment <- as.numeric(factor(df$Segment))
+df$Ship.Mode <- as.numeric(factor(df$Ship.Mode))
+df$Region <- as.numeric(factor(df$Region))
+df$Order.Priority <- as.numeric(factor(df$Order.Priority))
+```
+
+
+```{r}
+head(df, 3)
+```
+
+...
+```{r}
+# the general correlation
+cor(df)
+```
+
+Ho = the predictors have no influence on the target variables
+
+Ha = the predictors have no influence on the target variables
+
+```{r}
+lmr <- lm(Sales ~ Segment + Ship.Mode + Region +Order.Priority + Quantity + Discount)
+summary(lmr)
+
+```
+...
+```{r}
+plot(lmr, col = 'red')
+```
+
+```{r}
+
+```
+
